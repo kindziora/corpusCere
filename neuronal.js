@@ -21,6 +21,11 @@ var corpusCere = function () {
                 var bp = this;
                 bp.done = function () { };
 
+                 //next build backpropagation
+
+
+
+
 
                 // bp.done(data);
 
@@ -106,9 +111,9 @@ var corpusCere = function () {
         net.addLayer = function (name, neurons) {
             var level = { name: name, neurons: neurons };
             net.layer.push(level);
-            return level;
+            return net;
         };
-        
+
         /**
          * 
          */
@@ -142,40 +147,39 @@ var corpusCere = function () {
             return result;
         };
 
+        /**
+             * 
+             */
+        net.learn = function (newInputData, validOutputData, learningStyle) {
+            var learnFn = corpus.cellBuilder.learningStyles[learningStyle];
+            return learnFn(net, newInputData, validOutputData);
+        };
 
 
         return net;
     };
 
-    /**
-     * 
-     */
-    corpus.learn = function (net, newInputData, validOutputData, learningStyle) {
-        var learnFn = corpus.cellBuilder.learningStyles[learningStyle];
-        return learnFn(net, newInputData, validOutputData);
-    };
 
     return corpus;
 };
 
 
-//testing the magic
+//testing the magic//////////////////////////////////////////////////////////
 
-var neuronFactory = new corpusCere();
-var net = neuronFactory.net("testNet");
+var nnetFactory = new corpusCere(),
+    learningOptions = { rate: 0.001, iterations: 10000, momentum: 0.2 };
 
-net.addLayer("inputLayer", neuronFactory.growNeuronsRandom(3));
-net.addLayer("hiddenLayer", neuronFactory.growNeuronsRandom(3));
-net.addLayer("outputLayer", neuronFactory.growNeuronsRandom(1));
+var net = nnetFactory.net("testNet")
+    .addLayer("inputLayer", nnetFactory.growNeuronsRandom(3))
+    .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(3))
+    .addLayer("outputLayer", nnetFactory.growNeuronsRandom(1));
 
+net.learn(newInputData, validOutputData, "backpropagation", learningOptions)
+    .done = function (learningResult) {
+        console.log(learningResult);
+    }
 
-var res = neuronFactory.learn(net, newInputData, validOutputData, "backpropagation");
-
-res.done = function (data) {
-    console.log(data);
-}
-
-//after training some new unknown input
+//after training, try some new unknown input
 
 var result = net.stimulus(newInputData);
 
