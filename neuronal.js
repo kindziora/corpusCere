@@ -6,7 +6,7 @@
 // building my own artificial neural network using sigmoid neurons and multiple layers
 // just to get a deeper understanding of ai
 
-var corpusBrain = function () {
+var corpusCere = function () {
     var corpus = this;
 
     /**
@@ -14,6 +14,23 @@ var corpusBrain = function () {
      */
     corpus.cellBuilder = function () {
         var me = this;
+
+
+        me.learningStyles = {
+            "backpropagation": function (net, newInputData, validOutputData) {
+                var bp = this;
+                bp.done = function () { };
+
+
+                // bp.done(data);
+
+                return bp;
+            },
+            "geneticAlgorithm": function () {
+
+            }
+        };
+
         /**
          * 
          */
@@ -78,42 +95,89 @@ var corpusBrain = function () {
     /**
      * 
      */
-    corpus.net = function () {
+    corpus.net = function (name) {
         var net = this;
-        var layer = [];
+        net.layer = [];
+        net.name = name;
 
+        /**
+         * 
+         */
         net.addLayer = function (name, neurons) {
             var level = { name: name, neurons: neurons };
-            layer.push(level);
+            net.layer.push(level);
             return level;
         };
-
-        net.stimulus = function (neurons) {
-
-        };
-
-        net.learn = function (neurons) {
-
-        };
-
         
+        /**
+         * 
+         */
+        net.stimulus = function (inputSignals, activationMethod) {
+            var current, i, next, neuronI, neuronN, activationFN =
+                corpus.cellBuilder.activationStyles[activationMethod],
+                curNeuron, nextNeuron, connections = [];
+
+            for (i in net.layer) {
+                currentL = net.layer[i];
+
+                if (typeof net.layer[i + 1] !== "undefined") {
+                    nextL = net.layer[i + 1];
+
+                    for (neuronN in nextL) {
+                        nextNeuron = nextL[neuronN];
+
+                        for (neuronI in currentL) {
+                            curNeuron = currentL[neuronI];
+                            connections.push(curNeuron);
+                        }
+                        nextNeuron.strength = activationFN(connections);
+                        connections = [];
+                    }
+                } else {
+                    result = currentL;
+                }
+
+            }
+
+            return result;
+        };
+
+
+
         return net;
-    } ();
-   
+    };
+
+    /**
+     * 
+     */
+    corpus.learn = function (net, newInputData, validOutputData, learningStyle) {
+        var learnFn = corpus.cellBuilder.learningStyles[learningStyle];
+        return learnFn(net, newInputData, validOutputData);
+    };
+
     return corpus;
 };
 
 
-//running the magic
+//testing the magic
 
-var neuronFactory = new corpusBrain();
+var neuronFactory = new corpusCere();
+var net = neuronFactory.net("testNet");
 
-neuralNet.addLayer("inputLayer", neuronFactory.growNeuronsRandom(3));
-neuralNet.addLayer("hiddenLayer", neuronFactory.growNeuronsRandom(3));
-neuralNet.addLayer("outputLayer", neuronFactory.growNeuronsRandom(1));
-
-
-neuralNet
+net.addLayer("inputLayer", neuronFactory.growNeuronsRandom(3));
+net.addLayer("hiddenLayer", neuronFactory.growNeuronsRandom(3));
+net.addLayer("outputLayer", neuronFactory.growNeuronsRandom(1));
 
 
+var res = neuronFactory.learn(net, newInputData, validOutputData, "backpropagation");
+
+res.done = function (data) {
+    console.log(data);
+}
+
+//after training some new unknown input
+
+var result = net.stimulus(newInputData);
+
+console.log(result);
 
