@@ -1,6 +1,6 @@
 /**
  * @author Alexander Kindziora
- * 
+ *
  */
 
 // building my own artificial neural network using sigmoid neurons and multiple layers
@@ -10,24 +10,40 @@ var corpusCere = function () {
     var corpus = this;
 
     /**
-     * 
+     *
      */
     corpus.cellBuilder = function () {
         var me = this;
 
+        me.gradient = {
+            "analytic": function () {
+
+            }
+        };
 
         me.learningStyles = {
-            "backpropagation": function (net, newInputData, validOutputData) {
+            "backpropagation": function (net, newInputData, validOutputData, gradientFn) {
                 var bp = this;
-                bp.done = function () { };
+                bp.done = function () {
+                };
 
-                 //next build backpropagation
+                var result, i, neuronN,
+                    currentL, neuron, gradient = 0;
 
+                for (i = net.layer.length; i >= 0; i--) {
+                    currentL = net.layer[i];
+                    for (neuronN in currentL) {
+                        neuron = currentL[neuronN];
 
+                        gradient = me.gradient[gradientFn](neuron.input[0], neuron.signal);
 
+                        neuron.weight *= gradient;
 
+                    }
 
-                // bp.done(data);
+                }
+
+                //bp.done(data);
 
                 return bp;
             },
@@ -37,31 +53,33 @@ var corpusCere = function () {
         };
 
         /**
-         * 
+         *
          */
         me.activationStyles = {
             /**
              * a activation function using sigmoid
              */
             "sigmoid": function (connections) {
-                var e = 1, signal, conLength = connections.length;
+                var e = 1, ConNeuron, conLength = connections.length, nsignal;
                 for (var current in connections) {
-                    signal = connections[current];
+                    ConNeuron = connections[current];
+
+                    this.inputs.push(ConNeuron); //save all the input connections/neurons that relate to this neuron
 
                     if (conLength < current) {
                         nsignal = connections[current + 1];
                     } else {
-                        nsignal = { weight: 0, strength: 0 } // could add bias node here ...
+                        nsignal = {weight: 0, signal: 0} // could add bias node here ...
                     }
-
-                    e = e + signal.weight * signal.strength + nsignal.weight * nsignal.strength;
-
+                    e = e + ConNeuron.weight * ConNeuron.signal + nsignal.weight * nsignal.signal;
                 }
-                return 1 / (1 + Math.pow(Math.E, -e)); // where Math.E is 2.718281828459045, why do we calculate with 2.7...?
+                this.signal = 1 / (1 + Math.pow(Math.E, -e)); // where Math.E is 2.718281828459045, why do we calculate with 2.7...?
+
+                return this; //this is the current neuron
             }
         };
         /**
-         * 
+         *
          */
         me.growNeuron = function (weight, threshold, activationMethod) {
             return {
@@ -72,24 +90,24 @@ var corpusCere = function () {
         };
 
         return me;
-    } ();
+    }();
 
     /**
-     * 
+     *
      */
     corpus.growNeuronsRandom = function (amount) {
         var randomElements = [];
         for (var i = 0; i < amount - 1; i++) {
-            randomElements.push({ weight: Math.random(), threshold: 0 });
+            randomElements.push({weight: Math.random(), threshold: 0});
         }
 
-        randomElements.push({ weight: Math.random(), threshold: 1 }); //add a bias neuron
+        randomElements.push({weight: Math.random(), threshold: 1}); //add a bias neuron
 
         return corpus.growNeurons(randomElements, 'sigmoid'); // could i use a randomly selected activation function?
     }
 
     /**
-     * 
+     *
      */
     corpus.growNeurons = function (arrWT, activationType) {
         return arrWT.map(function (element) {
@@ -98,7 +116,7 @@ var corpusCere = function () {
     }
 
     /**
-     * 
+     *
      */
     corpus.net = function (name) {
         var net = this;
@@ -106,55 +124,48 @@ var corpusCere = function () {
         net.name = name;
 
         /**
-         * 
+         *
          */
         net.addLayer = function (name, neurons) {
-            var level = { name: name, neurons: neurons };
+            var level = {name: name, neurons: neurons};
             net.layer.push(level);
             return net;
         };
 
         /**
-         * 
+         *
          */
         net.stimulus = function (inputSignals, activationMethod) {
-            var current, i, next, neuronI, neuronN, activationFN =
-                corpus.cellBuilder.activationStyles[activationMethod],
-                curNeuron, nextNeuron, connections = [];
+            var result, i, neuronI, neuronN, activationFN =
+                    corpus.cellBuilder.activationStyles[activationMethod],
+                currentL, nextL, connections = [];
 
             for (i in net.layer) {
                 currentL = net.layer[i];
-
                 if (typeof net.layer[i + 1] !== "undefined") {
                     nextL = net.layer[i + 1];
-
                     for (neuronN in nextL) {
-                        nextNeuron = nextL[neuronN];
-
                         for (neuronI in currentL) {
-                            curNeuron = currentL[neuronI];
-                            connections.push(curNeuron);
+                            connections.push(currentL[neuronI]);
                         }
-                        nextNeuron.strength = activationFN(connections);
+                        nextL[neuronN] = activationFN.call(nextL[neuronN], connections);
                         connections = [];
                     }
                 } else {
                     result = currentL;
                 }
-
             }
 
             return result;
         };
 
         /**
-             * 
-             */
-        net.learn = function (newInputData, validOutputData, learningStyle) {
+         *
+         */
+        net.learn = function (newInputData, validOutputData, learningStyle, gradientFn) {
             var learnFn = corpus.cellBuilder.learningStyles[learningStyle];
-            return learnFn(net, newInputData, validOutputData);
+            return learnFn(net, newInputData, validOutputData, gradientFn);
         };
-
 
         return net;
     };
@@ -167,7 +178,7 @@ var corpusCere = function () {
 //testing the magic//////////////////////////////////////////////////////////
 
 var nnetFactory = new corpusCere(),
-    learningOptions = { rate: 0.001, iterations: 10000, momentum: 0.2 };
+    learningOptions = {rate: 0.001, iterations: 10000, momentum: 0.2};
 
 var net = nnetFactory.net("testNet")
     .addLayer("inputLayer", nnetFactory.growNeuronsRandom(3))
@@ -176,8 +187,8 @@ var net = nnetFactory.net("testNet")
 
 net.learn(newInputData, validOutputData, "backpropagation", learningOptions)
     .done = function (learningResult) {
-        console.log(learningResult);
-    }
+    console.log(learningResult);
+}
 
 //after training, try some new unknown input
 
