@@ -15,32 +15,51 @@ var corpusCere = function () {
     corpus.cellBuilder = function () {
         var me = this;
 
-        me.gradient = {
-            "analytic": function () {
-
-            }
-        };
-
         me.learningStyles = {
             "backpropagation": function (net, newInputData, validOutputData, gradientFn) {
                 var bp = this;
                 bp.done = function () {
                 };
 
+                function getErrWrtTotalNetInput(out, targetOut) {
+                    return -(targetOut - out) * out * (1 - out);
+                }
+
+
+
                 var result, i, neuronN,
-                    currentL, neuron, gradient = 0;
+                    currentL, neuron, gradient = 0, outputLayer = true;
 
                 for (i = net.layer.length; i >= 0; i--) {
                     currentL = net.layer[i];
                     for (neuronN in currentL) {
                         neuron = currentL[neuronN];
 
-                        gradient = me.gradient[gradientFn](neuron.input[0], neuron.signal);
+                        if (outputLayer) {
+                            neuron.errorsTotalNetInput = getErrWrtTotalNetInput(neuron.signal, validOutputData[neuronN]);
+                        }
+
+                        if (!outputlayer && i > 0) { //must be a hidden layer then
+                            var laterLayer = net.layer[i + 1];
+                            var errorsWrtOut = 0;    
+                            for (var neuronL in laterLayer) {
+                                var laterNeuron = laterLayer[neuronL];
+                                errorsWrtOut += laterNeuron.errorsTotalNetInput * neuron[neuronN].weight[neuronL];
+                            }
+
+                            neuron.errHiddenToTotalNetInput = errorsWrtOut * neuron.signal * (1 - neuron.signal);
+                        }
+
+
+                        if (i === 0) { //input layer
+
+                        }
+
 
                         neuron.weight *= gradient;
 
                     }
-
+                    outputLayer = false;
                 }
 
                 //bp.done(data);
@@ -69,7 +88,7 @@ var corpusCere = function () {
                     if (conLength < current) {
                         nsignal = connections[current + 1];
                     } else {
-                        nsignal = {weight: 0, signal: 0} // could add bias node here ...
+                        nsignal = { weight: 0, signal: 0 } // could add bias node here ...
                     }
                     e = e + ConNeuron.weight * ConNeuron.signal + nsignal.weight * nsignal.signal;
                 }
@@ -83,14 +102,14 @@ var corpusCere = function () {
          */
         me.growNeuron = function (weight, threshold, activationMethod) {
             return {
-                weight: weight,
+                weight: [weight],
                 threshold: threshold,
                 activate: me.activationStyles[activationMethod]
             };
         };
 
         return me;
-    }();
+    } ();
 
     /**
      *
@@ -98,10 +117,10 @@ var corpusCere = function () {
     corpus.growNeuronsRandom = function (amount) {
         var randomElements = [];
         for (var i = 0; i < amount - 1; i++) {
-            randomElements.push({weight: Math.random(), threshold: 0});
+            randomElements.push({ weight: Math.random(), threshold: 0 });
         }
 
-        randomElements.push({weight: Math.random(), threshold: 1}); //add a bias neuron
+        randomElements.push({ weight: Math.random(), threshold: 1 }); //add a bias neuron
 
         return corpus.growNeurons(randomElements, 'sigmoid'); // could i use a randomly selected activation function?
     }
@@ -127,7 +146,7 @@ var corpusCere = function () {
          *
          */
         net.addLayer = function (name, neurons) {
-            var level = {name: name, neurons: neurons};
+            var level = { name: name, neurons: neurons };
             net.layer.push(level);
             return net;
         };
@@ -137,7 +156,7 @@ var corpusCere = function () {
          */
         net.stimulus = function (inputSignals, activationMethod) {
             var result, i, neuronI, neuronN, activationFN =
-                    corpus.cellBuilder.activationStyles[activationMethod],
+                corpus.cellBuilder.activationStyles[activationMethod],
                 currentL, nextL, connections = [];
 
             for (i in net.layer) {
@@ -178,7 +197,7 @@ var corpusCere = function () {
 //testing the magic//////////////////////////////////////////////////////////
 
 var nnetFactory = new corpusCere(),
-    learningOptions = {rate: 0.001, iterations: 10000, momentum: 0.2};
+    learningOptions = { rate: 0.001, iterations: 10000, momentum: 0.2 };
 
 var net = nnetFactory.net("testNet")
     .addLayer("inputLayer", nnetFactory.growNeuronsRandom(3))
@@ -187,8 +206,8 @@ var net = nnetFactory.net("testNet")
 
 net.learn(newInputData, validOutputData, "backpropagation", learningOptions)
     .done = function (learningResult) {
-    console.log(learningResult);
-}
+        console.log(learningResult);
+    }
 
 //after training, try some new unknown input
 
