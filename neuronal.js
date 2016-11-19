@@ -41,22 +41,21 @@ var corpusCere = function () {
 
                         if (!outputlayer && i > 0) { //must be a hidden layer then
                             var laterLayer = net.layer[i + 1];
-                            var errorsWrtOut = 0;    
+                            var errorsWrtOut = 0;
                             for (var neuronL in laterLayer) {
                                 var laterNeuron = laterLayer[neuronL];
                                 errorsWrtOut += laterNeuron.errorsTotalNetInput * neuron[neuronN].weight[neuronL];
+                                var errorsWrtWeight = 0;
+
+                                for (var weights in laterNeuron.weight) {
+                                    errorsWrtWeight = laterNeuron.errorsTotalNetInput * laterNeuron.input[weights].signal;
+                                    laterNeuron.weight[weights] -= LEARNINGRATE * errorsWrtWeight;
+                                } 
+
                             }
 
                             neuron.errHiddenToTotalNetInput = errorsWrtOut * neuron.signal * (1 - neuron.signal);
-                        }
-
-
-                        if (i === 0) { //input layer
-
-                        }
-
-
-                        neuron.weight *= gradient;
+                        } 
 
                     }
                     outputLayer = false;
