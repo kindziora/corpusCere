@@ -272,3 +272,5 @@ net.done = function (net, trainingData) {
 net.learn([1, 0], [0, 1], "backpropagation", learningOptions);
 
 
+//no training [1, 0] = [0, 1] 0.8637949432782007 0.8154183737169318
+//with training [1, 0] = [0, 1] 0.0020680089562570433 0.975465300792186
