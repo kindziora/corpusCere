@@ -248,15 +248,15 @@ var corpusCere = function () {
 //testing the magic//////////////////////////////////////////////////////////
 
 var nnetFactory = new corpusCere(),
-    learningOptions = { LEARNINGRATE: 0.85, ITERATIONS: 100, momentum: 0.2 };
+    learningOptions = { LEARNINGRATE: 0.8, ITERATIONS: 100 };
 
 var newInputData = [1, 0];
-var validOutputData = [0.9];
+var validOutputData = [0,1];
 
 var net = nnetFactory.net("testNet")
     .addLayer("inputLayer", nnetFactory.growNeuronsRandom(2))
-    .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(2))
-    .addLayer("outputLayer", nnetFactory.growNeuronsRandom(1));
+    .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(2))  
+    .addLayer("outputLayer", nnetFactory.growNeuronsRandom(2));
 
 
 
