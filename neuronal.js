@@ -47,7 +47,7 @@ var corpusCere = function () {
                 }
 
                 var result, i, neuronN,
-                    currentL, neuron, gradient = 0, outputLayer = true, outputValidperLayer = validOutputData;
+                    currentL, neuron, gradient = 0, outputlayer = true, outputValidperLayer = validOutputData;
 
                 for (i = net.layer.length - 1; i >= 0; i--) { // begin at the end
                     currentL = net.layer[i];
@@ -55,9 +55,9 @@ var corpusCere = function () {
                     currentL.errorRate = getErrorPerLayer(currentL.neurons, outputValidperLayer);
 
                     for (neuronN in currentL.neurons) {
-                        neuron = currentL[neuronN];
+                        neuron = currentL.neurons[neuronN];
 
-                        if (outputLayer) {
+                        if (outputlayer) {
                             neuron.errorRate = getErrWrtTotalNetInput(neuron.signal, validOutputData[neuronN]);
                         }
 
@@ -192,7 +192,7 @@ var corpusCere = function () {
         net.stimulus = function (inputSignals, activationMethod) {
             var i, e, neuronN, activationFN =
                 corpus.cellBuilder.activationStyles[activationMethod],
-                currentL;
+                currentL, nextL, allNextLNeurons;
 
             for (e in net.layer[0].neurons) {
                 net.layer[0].neurons[e].input[e] = {
@@ -202,22 +202,23 @@ var corpusCere = function () {
             }
 
             for (i = 0; i < net.layer.length; i++) {
-                currentL = net.layer[i].neurons;
+                currentL = net.layer[i];
 
-                if (typeof net.layer[i + 1] !== 'undefined') {
-                    nextL = net.layer[i + 1].neurons;
-                } else {
-                    nextL = currentL;
-                }
+                for (neuronN in currentL.neurons) {
 
-                for (neuronN in currentL) {
+                    currentL.neurons[neuronN] = activationFN.call(currentL.neurons[neuronN]);
 
-                    currentL[neuronN] = activationFN.call(currentL[neuronN]);
+                    if (typeof net.layer[i + 1] !== 'undefined') {
+                        nextL = net.layer[i + 1];
+                        for (allNextLNeurons in nextL.neurons) {
+                            console.log(currentL.neurons[neuronN], neuronN);
 
-                    for (var allNextLNeurons in nextL) {
-                        nextL[allNextLNeurons].inputs[neuronN].signal = currentL[neuronN].signal;
+                            nextL.neurons[allNextLNeurons].input[neuronN].signal = currentL.neurons[neuronN].signal;
+                        }
                     }
+
                 }
+
             }
 
             return currentL; //output layer will be the last one
