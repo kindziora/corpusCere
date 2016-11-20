@@ -43,10 +43,6 @@ var corpusCere = function () {
                 }
                 for (var itera = 0; itera < learningOptions.ITERATIONS; itera++) {
 
-
-                    var errorTotal = 0;
-
-
                     var result, i, neuronN,
                         currentL, neuron, gradient = 0, outputlayer = true, outputValidperLayer = validOutputData;
 
@@ -90,8 +86,9 @@ var corpusCere = function () {
                         outputValidperLayer = [123];  // calculate new closer to valid value and set it for the next iteration
                         outputlayer = false;
                     }
+                    net.doneIteration(net, { it: itera, in: newInputData, out: validOutputData, err: net.layer.slice(-1)[0].errorRate });
                 }
-                net.done(net, { in: newInputData, out: validOutputData });
+                net.done(net, { in: newInputData, out: validOutputData, err: net.layer.slice(-1)[0].errorRate });
 
                 return net;
             },
@@ -175,6 +172,10 @@ var corpusCere = function () {
         net.done = function (val) {
             console.log(val);
         };
+        net.doneIteration = function (val, params) {
+            console.log("iteration: " + params.it + " errRate: " + params.err);
+        };
+
         /**
          *
          */
@@ -234,7 +235,11 @@ var corpusCere = function () {
 
             var learnFn = corpus.cellBuilder.learningStyles[learningStyle];
 
-            return learnFn(net, newInputData, validOutputData, learningOptions);
+            for (var set in newInputData) {
+                learnFn(net, newInputData[set], validOutputData[set], learningOptions);
+            }
+
+            return net;
         };
 
         return net;
@@ -251,26 +256,34 @@ var nnetFactory = new corpusCere(),
     learningOptions = { LEARNINGRATE: 0.5, ITERATIONS: 100 };
 
 
+var trainingset = [
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [1, 1]
+];
+
+var resultset = [
+    [0],
+    [1],
+    [1],
+    [0]
+];
+
+
 var net = nnetFactory.net("testNet")
     .addLayer("inputLayer", nnetFactory.growNeuronsRandom(2))
     .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(2))
-    .addLayer("outputLayer", nnetFactory.growNeuronsRandom(2));
-
-
-//before training, try some input
+    .addLayer("outputLayer", nnetFactory.growNeuronsRandom(1));
 
 var result = net.stimulus([1, 0], "sigmoid");
 
-console.log("no training [1, 0] = [0, 1]", result.neurons[0].signal, result.neurons[1].signal);
-
-net.done = function (net, trainingData) {
-    //after training, try some input
+net.doneIteration = function (val, params) {
     var result = net.stimulus([1, 0], "sigmoid");
-    console.log("with training [1, 0] = [0, 1]", result.neurons[0].signal, result.neurons[1].signal);
+    console.log("iteration: " + params.it + " errRate: " + params.err);
 };
 
-net.learn([1, 0], [0, 1], "backpropagation", learningOptions);
-
+net.learn(trainingset, resultset, "backpropagation", learningOptions);
 
 //no training [1, 0] = [0, 1] 0.8637949432782007 0.8154183737169318
 //with training [1, 0] = [0, 1] 0.0020680089562570433 0.975465300792186
