@@ -91,7 +91,7 @@ var corpusCere = function () {
                         outputlayer = false;
                     }
                 }
-                net.done(net);
+                net.done(net, { in: newInputData, out: validOutputData });
 
                 return net;
             },
@@ -248,33 +248,27 @@ var corpusCere = function () {
 //testing the magic//////////////////////////////////////////////////////////
 
 var nnetFactory = new corpusCere(),
-    learningOptions = { LEARNINGRATE: 0.8, ITERATIONS: 100 };
+    learningOptions = { LEARNINGRATE: 0.5, ITERATIONS: 100 };
 
-var newInputData = [1, 0];
-var validOutputData = [0,1];
 
 var net = nnetFactory.net("testNet")
     .addLayer("inputLayer", nnetFactory.growNeuronsRandom(2))
-    .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(2))  
+    .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(2))
     .addLayer("outputLayer", nnetFactory.growNeuronsRandom(2));
-
 
 
 //before training, try some input
 
-var result = net.stimulus(newInputData, "sigmoid");
+var result = net.stimulus([1, 0], "sigmoid");
 
-console.log("ohne training", result);
+console.log("no training [1, 0] = [0, 1]", result.neurons[0].signal, result.neurons[1].signal);
 
-net.done = function (net) {
-
-
-
+net.done = function (net, trainingData) {
+    //after training, try some input
+    var result = net.stimulus([1, 0], "sigmoid");
+    console.log("with training [1, 0] = [0, 1]", result.neurons[0].signal, result.neurons[1].signal);
 };
 
-net.learn(newInputData, validOutputData, "backpropagation", learningOptions)
+net.learn([1, 0], [0, 1], "backpropagation", learningOptions);
 
-//after training, try some input
-var result = net.stimulus(newInputData, "sigmoid");
 
-console.log("mit training", result);
