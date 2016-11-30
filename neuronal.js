@@ -31,7 +31,7 @@ var corpusCere = function () {
                  * 
                  */
                 function getError(out, targetOut) {
-                    return Math.pow(targetOut - out, 2) / 2;
+                    return 0.5 * Math.pow(targetOut - out, 2);
                 }
 
 
@@ -56,13 +56,13 @@ var corpusCere = function () {
                 // ausgabeNeuronen quotienten berechnen mit ausgabeerwartung
                 // output layer pd error
                 for (neuronN in net.layer[2].neurons) {
-                    neuron = net.layer[2].neurons[neuronN];
+                    var neuron = net.layer[2].neurons[neuronN];
                     neuron.errorRate = getErrWrtTotalNetInput(neuron.signal, validOutputData[neuronN]);
                 }
 
                 // hidden layer pd error
                 for (neuronN in net.layer[1].neurons) {
-                    neuron = net.layer[1].neurons[neuronN];
+                    var neuron = net.layer[1].neurons[neuronN];
                     var erHiddenN = 0;
 
                     for (var h in net.layer[2].neurons) {
@@ -76,7 +76,7 @@ var corpusCere = function () {
 
                 // output layer updateWeight
                 for (neuronN in net.layer[2].neurons) {
-                    neuron = net.layer[2].neurons[neuronN];
+                    var neuron = net.layer[2].neurons[neuronN];
 
                     for (var inX in neuron.input) {
                         var inP = neuron.input[inX];
@@ -91,7 +91,7 @@ var corpusCere = function () {
 
                 // hidden layer updateWeight
                 for (neuronN in net.layer[1].neurons) {
-                    neuron = net.layer[1].neurons[neuronN];
+                    var neuron = net.layer[1].neurons[neuronN];
                     for (var inX in neuron.input) {
                         var inP = neuron.input[inX];
 
@@ -177,7 +177,7 @@ var corpusCere = function () {
 
 
 
-                net.doneIteration(net, { it: iteration, in: newInputData, out: validOutputData, result: getResults(net.layer.slice(-1)[0]), err: getErrorPerLayer(net.layer.slice(-1)[0], validOutputData) });
+                net.doneIteration.call(net, { it: iteration, in: newInputData, out: validOutputData, result: getResults(net.layer.slice(-1)[0]), err: getErrorPerLayer(net.layer.slice(-1)[0], validOutputData) });
                 return net;
             },
             "geneticAlgorithm": function () {
@@ -189,6 +189,10 @@ var corpusCere = function () {
          *
          */
         me.activationStyles = {
+            "input": function () {
+                this.signal = this.input[0].signal;
+                return this;
+            },
             /**
              * a activation function using sigmoid
              */
@@ -281,13 +285,12 @@ var corpusCere = function () {
         /**
          *
          */
-        net.stimulus = function (inputSignals, activationMethod) {
-            var i, e, neuronN, activationFN =
-                corpus.cellBuilder.activationStyles[activationMethod],
+        net.stimulus = function (inputSignals) {
+            var i, e, neuronN,
                 currentL, nextL, allNextLNeurons;
 
             for (e in net.layer[0].neurons) {
-                net.layer[0].neurons[e].input[e] = {
+                net.layer[0].neurons[e].input[0] = {
                     signal: inputSignals[e],
                     weight: 1
                 };
@@ -298,7 +301,7 @@ var corpusCere = function () {
 
                 for (neuronN in currentL.neurons) {
 
-                    currentL.neurons[neuronN] = activationFN.call(currentL.neurons[neuronN]);
+                    currentL.neurons[neuronN].activate.call(currentL.neurons[neuronN]);
 
                     if (typeof net.layer[i + 1] !== 'undefined') {
                         nextL = net.layer[i + 1];
@@ -318,16 +321,13 @@ var corpusCere = function () {
          *
          */
         net.learn = function (newInputData, validOutputData, learningStyle, learningOptions) {
-            var net = this;
             var learnFn = corpus.cellBuilder.learningStyles[learningStyle];
 
             for (var itera = 0; itera < learningOptions.ITERATIONS; itera++) {
-                for (var set in newInputData) {
-                    learnFn(net, newInputData[set], validOutputData[set], learningOptions, itera);
-                }
+                var set = Math.floor(Math.random() * newInputData.length);
+                learnFn(net, newInputData[set], validOutputData[set], learningOptions, itera);
             }
-            net.done(net, { in: newInputData, out: validOutputData, err: net.layer.slice(-1)[0].errorRate });
-            return net;
+            net.done.call(net, { in: newInputData, out: validOutputData, err: net.layer.slice(-1)[0].errorRate });
         };
 
         return net;
@@ -346,44 +346,46 @@ var corpusCere = function () {
 //testing the magic//////////////////////////////////////////////////////////
 
 var nnetFactory = new corpusCere(),
-    learningOptions = { LEARNINGRATE: 0.001, ITERATIONS: 29400 };
+    learningOptions = { LEARNINGRATE: 0.001, ITERATIONS: 9403 };
 
 
 var trainingset = [
     [1, 1],
-    [1, 0]
-
+    [1, 0],
+    [1, 0.5]
     //  [1, 1]
 ];
 
 var resultset = [
     [1],
+    [0],
     [0]
+
 
     //  [0]
 ];
 
 
 var net = nnetFactory.net("testNet")
-    .addLayer("inputLayer", nnetFactory.growNeuronsRandom(2, "sigmoid", 1))
-    .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(5, "sigmoid", 1))
+    .addLayer("inputLayer", nnetFactory.growNeuronsRandom(2, "input", 0))
+    .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(2, "sigmoid", 1))
     .addLayer("outputLayer", nnetFactory.growNeuronsRandom(1, "sigmoid", 1));
 
-net.stimulus([1, 0], "sigmoid");
+net.stimulus([1, 0]);
 
-net.doneIteration = function (net, params) {
-    net.stimulus(params.in, "sigmoid");
+net.doneIteration = function (params) {
+    this.stimulus(params.in);
     console.log("iteration: " + params.it, params.in, params.out, params.result, " errRate: " + params.err);
 
 };
 
-net.learn.call(net, trainingset, resultset, "backpropagation", learningOptions);
+net.learn(trainingset, resultset, "backpropagation", learningOptions);
 
 //no training [1, 0] = [0, 1] 0.8637949432782007 0.8154183737169318
 //with training [1, 0] = [0, 1] 0.0020680089562570433 0.975465300792186
 
 for (var s in trainingset) {
-    var result = net.stimulus(trainingset[s], "sigmoid");
+    var result = net.stimulus(trainingset[s]);
 
     console.log("Ergebnis: ", trainingset[s], JSON.stringify(result.neurons[0].signal));
 }
