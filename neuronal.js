@@ -304,9 +304,12 @@ net.doneIteration = function (params) {
 };
 
 net.learn(trainingset, resultset, "backpropagation", learningOptions);
+/*
+Ergebnis:  [ 0.9, 0.9 ] 0.999999752724947
+Ergebnis:  [ 0.9, 0.1 ] 0.1044124840580854
+Ergebnis:  [ 0.9, 0.7 ] 0.9999928211759743
+*/
 
-//no training [1, 0] = [0, 1] 0.8637949432782007 0.8154183737169318
-//with training [1, 0] = [0, 1] 0.0020680089562570433 0.975465300792186
 
 for (var s in trainingset) {
     var result = net.stimulus(trainingset[s]);
