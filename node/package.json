@@ -1,0 +1,10 @@
+{
+  "name": "testing-neuralnet",
+  "version": "0.0.1",
+  "description": "testing stuff with neural nets",
+  "main": "./static.js",
+  "dependencies": {
+    "express": "latest",
+    "milligram": "latest"
+  }
+}

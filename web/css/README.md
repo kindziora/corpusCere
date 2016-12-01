@@ -1,0 +1,1 @@
+ln -s /home/a/projekte/neuralnet/node/node_modules/milligram/dist milligram

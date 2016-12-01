@@ -254,6 +254,10 @@ var corpusCere = function () {
             net.done.call(net, { in: newInputData, out: validOutputData, err: net.layer.slice(-1)[0].gradient });
         };
 
+        net.persist = function() {
+            return JSON.stringify(net.layer);
+        }
+
         return net;
     };
 
@@ -270,20 +274,20 @@ var corpusCere = function () {
 //testing the magic//////////////////////////////////////////////////////////
 
 var nnetFactory = new corpusCere(),
-    learningOptions = { LEARNINGRATE: 0.7, ITERATIONS: 70003, MOMENTUM: 0.7 };
+    learningOptions = { LEARNINGRATE: .7, ITERATIONS: 70003, MOMENTUM: .7 };
 
 
 var trainingset = [
-    [0.9, 0.9],
-    [0.9, 0.1],
-    [0.9, 0.7]
+    [.9, .9, .9, .9],
+    [.9, .1, .9, .1],
+    [.8, .9, .8, .9]
     //  [1, 1]
 ];
 
 var resultset = [
-    [0.9],
-    [0.1],
-    [0.1]
+    [.9],
+    [.1],
+    [.9]
 
 
     //  [0]
@@ -291,7 +295,7 @@ var resultset = [
 
 
 var net = nnetFactory.net("testNet")
-    .addLayer("inputLayer", nnetFactory.growNeuronsRandom(2, "input", 0))
+    .addLayer("inputLayer", nnetFactory.growNeuronsRandom(2, "sigmoid", 0))
     .addLayer("hiddenLayer", nnetFactory.growNeuronsRandom(2, "sigmoid", 1))
     .addLayer("outputLayer", nnetFactory.growNeuronsRandom(1, "sigmoid", 1));
 
@@ -304,6 +308,7 @@ net.doneIteration = function (params) {
 };
 
 net.learn(trainingset, resultset, "backpropagation", learningOptions);
+
 /*
 Ergebnis:  [ 0.9, 0.9 ] 0.999999752724947
 Ergebnis:  [ 0.9, 0.1 ] 0.1044124840580854
@@ -317,5 +322,4 @@ for (var s in trainingset) {
     console.log("Ergebnis: ", trainingset[s], JSON.stringify(result.neurons[0].output));
 }
 
-
-process.exit();
+console.log(net.persist());
