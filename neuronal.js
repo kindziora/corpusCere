@@ -38,14 +38,14 @@ var corpusCere = function () {
                 function getErrorPerLayer(layer, targetOut) {
                     var errorTotal = 0;
                     for (var neuronN in layer.neurons) {
-                        errorTotal += getError(layer.neurons[neuronN].signal, targetOut[neuronN]);
+                        errorTotal += getError(layer.neurons[neuronN].output, targetOut[neuronN]);
                     }
                     return errorTotal;
                 }
 
                 function getResults(layer) {
                     return layer.neurons.map(function (v) {
-                        return v.signal;
+                        return v.output;
                     });
                 }
 
@@ -55,126 +55,50 @@ var corpusCere = function () {
 
                 // ausgabeNeuronen quotienten berechnen mit ausgabeerwartung
                 // output layer pd error
-                for (neuronN in net.layer[2].neurons) {
-                    var neuron = net.layer[2].neurons[neuronN];
-                    neuron.errorRate = getErrWrtTotalNetInput(neuron.signal, validOutputData[neuronN]);
+                var outPutLayer = net.layer.slice(-1)[0];
+
+                for (neuronN in outPutLayer.neurons) {
+                    var neuron2 = outPutLayer.neurons[neuronN];
+                    neuron2.gradient = getErrWrtTotalNetInput(neuron2.output, validOutputData[neuronN]);
                 }
+
 
                 // hidden layer pd error
                 for (neuronN in net.layer[1].neurons) {
-                    var neuron = net.layer[1].neurons[neuronN];
+                    var neuron1 = net.layer[1].neurons[neuronN];
                     var erHiddenN = 0;
-
-                    for (var h in net.layer[2].neurons) {
-                        var outPutNeuron = net.layer[2].neurons[h];
-                        erHiddenN += outPutNeuron.errorRate * outPutNeuron.input[neuronN].weight;
+                    for (var h in outPutLayer.neurons) {
+                        var outPutNeuron = outPutLayer.neurons[h];
+                        erHiddenN += outPutNeuron.gradient * outPutNeuron.input[neuronN].weight;
                     }
 
-                    neuron.errorRate = erHiddenN * (neuron.signal * (1 - neuron.signal));
+                    neuron1.gradient = erHiddenN * (neuron1.output * (1 - neuron1.output));
                 }
 
 
-                // output layer updateWeight
-                for (neuronN in net.layer[2].neurons) {
-                    var neuron = net.layer[2].neurons[neuronN];
 
-                    for (var inX in neuron.input) {
-                        var inP = neuron.input[inX];
+                for (i = 0; i < net.layer.length; i++) {
+                    var neurons = net.layer[i].neurons;
 
-                        pd_error_wrt_weight = neuron.errorRate * inP.weight;
+                    for (neuronN in neurons) {
+                        var neuron = neurons[neuronN];
 
-                        inP.weight -= learningOptions.LEARNINGRATE * pd_error_wrt_weight
-                    }
+                        if (typeof neuron.gradient === 'undefined') neuron.gradient = 0;
 
+                        neuron.threshold -= learningOptions.LEARNINGRATE * neuron.gradient;
 
-                }
+                        for (var inX in neuron.input) {
+                            var inputConnection = neuron.input[inX];
 
-                // hidden layer updateWeight
-                for (neuronN in net.layer[1].neurons) {
-                    var neuron = net.layer[1].neurons[neuronN];
-                    for (var inX in neuron.input) {
-                        var inP = neuron.input[inX];
+                            if (typeof inputConnection.previousDeltas === 'undefined') inputConnection.previousDeltas = 0;
 
-                        pd_error_wrt_weight = neuron.errorRate * inP.weight;
+                            inputConnection.delta = learningOptions.LEARNINGRATE * neuron.gradient * inputConnection.signal;
+                            inputConnection.weight += inputConnection.delta;
 
-                        inP.weight -= learningOptions.LEARNINGRATE * pd_error_wrt_weight
+                        }
+                      
                     }
                 }
-
-                /*
-                
-                                for (i = net.layer.length - 1; i >= 1; i--) { // begin at the end
-                                    currentL = net.layer[i];
-                
-                                    currentL.errorRate = getErrorPerLayer(currentL.neurons, outputValidperLayer);
-                
-                                    for (neuronN in currentL.neurons) {
-                                        neuron = currentL.neurons[neuronN];
-                
-                                        var pd_error_wrt_weight;
-                                        var erHiddenN = 0;
-                
-                                        if (outputlayer) {
-                                            neuron.errorRate = getErrWrtTotalNetInput(neuron.signal, validOutputData[neuronN]);
-                
-                                            for (var inX in neuron.input) {
-                                                var inP = neuron.input[inX];
-                 
-                                                pd_error_wrt_weight = neuron.errorRate * inP.weight;
-                
-                                                inP.weight -= learningOptions.LEARNINGRATE * pd_error_wrt_weight
-                                            }
-                
-                                        }
-                
-                                        if (!outputlayer) { //must be a hidden layer then
-                                            var laterLayer = net.layer[i + 1].neurons,
-                                                laterNeuron = laterLayer[neuronN];
-                                    
-                                            for (var h in laterLayer) {
-                                                if (typeof laterNeuron !== 'undefined')
-                                                    erHiddenN += laterLayer[neuronN].errorRate * neuron.input[h].weight;
-                                            }
-                
-                                            neuron.pderrors = erHiddenN * (neuron.signal * (1 - neuron.signal));
-                                            
-                                        
-                                             for (var inX in neuron.input) {
-                                                var inP = neuron.input[inX];
-                 
-                                                pd_error_wrt_weight = neuron.pderrors * inP.weight;
-                
-                                                inP.weight -= learningOptions.LEARNINGRATE * pd_error_wrt_weight
-                                            }
-                
-                
-                                            if (typeof laterNeuron !== 'undefined') {
-                                                for (var h in laterLayer) {
-                
-                                                    var errorsWrtWeight = laterNeuron.errorRate * laterNeuron.input[h].signal;
-                
-                                                    laterNeuron.input[neuronN].weight -= learningOptions.LEARNINGRATE * errorsWrtWeight;
-                
-                                                }
-                                            }
-                
-                                        }
-                
-                
-                
-                
-                                    }
-                                    //for deeper nets we would need to pass new estimated optimal output
-                                    // here we might run into the vanishing gradient problem?
-                                   // outputValidperLayer = [123];  // calculate new closer to valid value and set it for the next iteration
-                                    outputlayer = false;
-                                }*/
-
-
-
-
-
-
 
 
                 net.doneIteration.call(net, { it: iteration, in: newInputData, out: validOutputData, result: getResults(net.layer.slice(-1)[0]), err: getErrorPerLayer(net.layer.slice(-1)[0], validOutputData) });
@@ -190,7 +114,7 @@ var corpusCere = function () {
          */
         me.activationStyles = {
             "input": function () {
-                this.signal = this.input[0].signal;
+                this.output = this.input[0].signal;
                 return this;
             },
             /**
@@ -209,7 +133,7 @@ var corpusCere = function () {
 
                 sum += this.threshold; // apply bias
 
-                this.signal = 1 / (1 + Math.exp(-sum)); // where Math.E is 2.718281828459045, why do we calculate with 2.7...?
+                this.output = 1 / (1 + Math.exp(-sum)); // where Math.E is 2.718281828459045, why do we calculate with 2.7...?
 
                 return this; //this is the current neuron
             }
@@ -306,7 +230,7 @@ var corpusCere = function () {
                     if (typeof net.layer[i + 1] !== 'undefined') {
                         nextL = net.layer[i + 1];
                         for (allNextLNeurons in nextL.neurons) {
-                            nextL.neurons[allNextLNeurons].input[neuronN].signal = currentL.neurons[neuronN].signal;
+                            nextL.neurons[allNextLNeurons].input[neuronN].signal = currentL.neurons[neuronN].output;
                         }
                     }
 
@@ -327,7 +251,7 @@ var corpusCere = function () {
                 var set = Math.floor(Math.random() * newInputData.length);
                 learnFn(net, newInputData[set], validOutputData[set], learningOptions, itera);
             }
-            net.done.call(net, { in: newInputData, out: validOutputData, err: net.layer.slice(-1)[0].errorRate });
+            net.done.call(net, { in: newInputData, out: validOutputData, err: net.layer.slice(-1)[0].gradient });
         };
 
         return net;
@@ -346,20 +270,20 @@ var corpusCere = function () {
 //testing the magic//////////////////////////////////////////////////////////
 
 var nnetFactory = new corpusCere(),
-    learningOptions = { LEARNINGRATE: 0.001, ITERATIONS: 9403 };
+    learningOptions = { LEARNINGRATE: 0.7, ITERATIONS: 70003, MOMENTUM: 0.7 };
 
 
 var trainingset = [
-    [1, 1],
-    [1, 0],
-    [1, 0.5]
+    [0.9, 0.9],
+    [0.9, 0.1],
+    [0.9, 0.7]
     //  [1, 1]
 ];
 
 var resultset = [
-    [1],
-    [0],
-    [0]
+    [0.9],
+    [0.1],
+    [0.1]
 
 
     //  [0]
@@ -375,7 +299,7 @@ net.stimulus([1, 0]);
 
 net.doneIteration = function (params) {
     this.stimulus(params.in);
-    console.log("iteration: " + params.it, params.in, params.out, params.result, " errRate: " + params.err);
+    //  console.log("iteration: " + params.it, params.in, params.out, params.result, " errRate: " + params.err);
 
 };
 
@@ -387,7 +311,7 @@ net.learn(trainingset, resultset, "backpropagation", learningOptions);
 for (var s in trainingset) {
     var result = net.stimulus(trainingset[s]);
 
-    console.log("Ergebnis: ", trainingset[s], JSON.stringify(result.neurons[0].signal));
+    console.log("Ergebnis: ", trainingset[s], JSON.stringify(result.neurons[0].output));
 }
 
 
