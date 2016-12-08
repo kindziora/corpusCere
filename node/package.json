@@ -5,6 +5,9 @@
   "main": "./static.js",
   "dependencies": {
     "express": "latest",
-    "milligram": "latest"
+    "milligram": "latest",
+    "three" : "latest",
+    "stats.js" : "latest"
+    
   }
 }
